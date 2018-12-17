@@ -10,10 +10,12 @@ from utils import torch_utils
 
 # Import test.py to get mAP after each epoch
 import test
+from tensorboardX import SummaryWriter
 
 DARKNET_WEIGHTS_FILENAME = 'darknet53.conv.74'
 DARKNET_WEIGHTS_URL = 'https://pjreddie.com/media/files/{}'.format(DARKNET_WEIGHTS_FILENAME)
 
+writer = SummaryWriter()
 
 def train(
         net_config_path,
@@ -187,6 +189,20 @@ def train(
             t1 = time.time()
             print(s)
 
+            progress = epoch + float(i)/len(dataloader)
+
+            writer.add_scalar('yolov3/loss/total', rloss['loss'], progress)
+            writer.add_scalar('yolov3/loss/pertarget', rloss['loss']/rloss['nT'], progress)
+            writer.add_scalar('yolov3/loss/h', rloss['h'], progress)
+            writer.add_scalar('yolov3/loss/w', rloss['w'], progress)
+            writer.add_scalar('yolov3/loss/conf', rloss['conf'], progress)
+            writer.add_scalar('yolov3/loss/class', rloss['cls'], progress)
+            writer.add_scalar('yolov3/loss/x', rloss['x'], progress)
+            writer.add_scalar('yolov3/loss/y', rloss['y'], progress)
+            writer.add_scalar('yolov3/metric/precision', mean_precision, progress)
+            writer.add_scalar('yolov3/metric/recall', mean_recall, progress)
+
+
         # Update best loss
         loss_per_target = rloss['loss'] / rloss['nT']
         if loss_per_target < best_loss:
@@ -223,6 +239,8 @@ def train(
             batch_size=batch_size,
             img_size=img_size,
         )
+
+        writer.add_scalar('yolov3/metric/map', mAP, epoch)
 
         # Write epoch results
         with open('results.txt', 'a') as file:
